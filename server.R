@@ -94,7 +94,7 @@ calc_toptables <- function(contrastCombo, values) {
   tops <- lapply(contrastCombo, get_toptables, design.limma, fit, values$pval, values$lgfch)
   names(tops) <- names(contrastCombo)
 
-  View(contrastCombo)
+
   # Update ReactiveVals
   values$tops <- tops
   values$v <- v
@@ -525,7 +525,7 @@ function(input, output, session) {
       
       output$vennList_C <- renderDataTable({
         dt <- merge(values$c[,c("genes","logFC","adj.P.Val")], values$c2[,c("logFC","adj.P.Val")], by="row.names")
-        View(dt)
+     
         colnames(dt) <- gsub(".x",".Left",colnames(dt))
         colnames(dt) <- gsub(".y",".Right",colnames(dt))
         
