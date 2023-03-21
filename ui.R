@@ -39,7 +39,8 @@ side <- dashboardSidebar(
     uiOutput('comparisonBoxes'),
     numericInput("pval", "Adj.P.Value:", value = 0.05, min = 0, max = 100),
     numericInput("lgfch", "Log Fold Change:", value = 1.5),
-    actionButton("runAnalysis", "Run")
+    actionButton("runAnalysis", "Run"),
+    uiOutput('export', class="shiny-input-container")
   )
 )
 
