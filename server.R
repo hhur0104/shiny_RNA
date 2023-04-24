@@ -14,6 +14,7 @@ library(ggVennDiagram)
 library(ggplot2)
 library(pheatmap)
 library(RColorBrewer)
+library(sva)
 
 options(shiny.maxRequestSize=30*1024^2)       # 30MB
 options(repos = BiocManager::repositories())  # to use Bioconductor packages for shinyapps.io 
@@ -72,8 +73,13 @@ calc_toptables <- function(contrastCombo, values) {
     genesymbol <- rep("No Information",nrow(target.final))
   }
   
-  counts <- DGEList(counts=target.final,genes=genesymbol) # Create Limma data object
-  isexpr <- rowSums(cpm(counts)>1)>=3 # Change this to 70% of nColumns
+  if (values$batch != "No Batch Correction needed.") {
+    adjusted_target <- ComBat_seq(as.matrix(target.final), batch=design[,values$batch], group=NULL)  
+    counts <- DGEList(counts=adjusted_target,genes=genesymbol) 
+  } else {
+    counts <- DGEList(counts=target.final,genes=genesymbol) # Create Limma data object
+  }
+  isexpr <- rowSums(cpm(counts)>1) >= (ncol(counts)*0.7) # Change this to 70% of nColumns
   counts <- counts[isexpr,keep.lib.sizes=FALSE]
   counts <- calcNormFactors(counts)
   
@@ -120,7 +126,6 @@ getPairPCA <- function(comparison, exprs, design, pval, lgfch) {
   pcaData <- prcomp(t(exprs[,selSmp]))
   pcaData <- data.frame(cbind(pcaData$x[,c(1,2)], var.explained=pcaData$sdev^2/sum(pcaData$sdev^2)))
   pcaData <- cbind(pcaData, "condition"=design[rownames(pcaData), "condition"])
-  
   
   return(pcaData)
 }
@@ -203,6 +208,7 @@ function(input, output, session) {
     values$choices <- choices
     values$pval <- input$pval
     values$lgfch <- input$lgfch
+    values$batch <- input$batch
     
     # design <- read.csv(input$file2$datapath)
     # rownames(design) <- design$samplename
@@ -226,7 +232,7 @@ function(input, output, session) {
     
     # Validate
     if (!identical(colnames(target), rownames(design))) {
-      pop_Erorr("Input Erorr","Column names in counts.tsv do not match with condition.csv")
+      pop_Error("Input Erorr","Column names in counts.tsv do not match with condition.csv")
       return() # Exit Function Here. Do nothing else.
     } 
     
@@ -272,7 +278,7 @@ function(input, output, session) {
       if (length(choices) > 1) {
         join <- data.frame(t(combn(unique(choices),2)))
         join <- paste(join$X1, " & ", join$X2, sep="")
-        print(join)
+        #print(join)
         tabs <- append(tabs, list(tabPanel(
             "Venn Diagram",
             fluidRow(
@@ -302,8 +308,7 @@ function(input, output, session) {
                 dataTableOutput(outputId="vennList_R")
               )
             )
-          ))
-        )
+        )))
       }
       
       do.call(tabsetPanel, c(tabs, id="tabs"))
@@ -466,24 +471,23 @@ function(input, output, session) {
         p1
       })
     
-    ## Heatmap Pairwise
-    output[[paste0("HM_pair_",i)]] <- renderPlotly({
-      DEGs <- rownames(tb[tb$adj.P.Val <= values$pval & abs(tb$logFC) >= values$lgfch,])
-      sel <- unlist(strsplit(i, split = ".vs."))
-      selSmp <- rownames(design[design$condition %in% sel,])
-      
-      p1 <- heatmaply(
-        values$v$E[DEGs,selSmp],
-        showticklabels=c(TRUE, FALSE),
-        scale="row",
-        color=colorRampPalette(rev(brewer.pal(n = 7, name ="RdBu")))(100),
-        Rowv = TRUE,
-        Colv = TRUE
-      )
-      
-      p1
-    })
-    
+      ## Heatmap Pairwise
+      output[[paste0("HM_pair_",i)]] <- renderPlotly({
+        DEGs <- rownames(tb[tb$adj.P.Val <= values$pval & abs(tb$logFC) >= values$lgfch,])
+        sel <- unlist(strsplit(i, split = ".vs."))
+        selSmp <- rownames(design[design$condition %in% sel,])
+        
+        p1 <- heatmaply(
+          values$v$E[DEGs,selSmp],
+          showticklabels=c(TRUE, FALSE),
+          scale="row",
+          color=colorRampPalette(rev(brewer.pal(n = 7, name ="RdBu")))(100),
+          Rowv = TRUE,
+          Colv = TRUE
+        )
+        
+        p1
+      })
     })
     # Render VennDiagram
     if (length(choices) > 1 ) {
@@ -512,6 +516,7 @@ function(input, output, session) {
         datatable(
           values$l[,c("genes","logFC","adj.P.Val")],
           options=list(
+            scrollX = TRUE,
             rowCallback = JS(c(
               "function(row, data, displayNum, index){",
               "  var x2 = data[2];", # logFC
@@ -522,7 +527,6 @@ function(input, output, session) {
           )
         ) 
       }) 
-      
       output$vennList_C <- renderDataTable({
         dt <- merge(values$c[,c("genes","logFC","adj.P.Val")], values$c2[,c("logFC","adj.P.Val")], by="row.names")
      
@@ -546,12 +550,12 @@ function(input, output, session) {
               "}"))
           )
         ) 
-      }) 
-      
+      })
       output$vennList_R <- renderDataTable({
         datatable(
           values$r[,c("genes","logFC","adj.P.Val")],
           options=list(
+            scrollX = TRUE,
             rowCallback = JS(c(
               "function(row, data, displayNum, index){",
               "  var x2 = data[2];", # logFC
@@ -619,11 +623,49 @@ function(input, output, session) {
                     axis.title.x=element_text(size=10),
                     axis.title.y=element_text(size=10))
             
-            ggsave(pca_name, p, width=6, height=4, dpi=200, units="in", device="png")
+          ggsave(pca_name, p, width=6, height=4, dpi=200, units="in", device="png")
         
         fs <- c(fs, csv, htm, pca_name)
         
         deg <- unique(c(deg,rownames(bt[abs(bt$logFC) >= values$lgfch & bt$adj.P.Val <= values$pval, ])))
+      }
+      
+      # For all vennComparison choices 
+      vennFs <- c()
+      join <- data.frame(t(combn(unique(values$choices),2)))
+      join <- paste(join$X1, ".&.", join$X2, sep="")
+      for (i in join) {
+        sel <- unlist(strsplit(i, split = ".&."))
+        
+        s1 <- values$tops[sel[1]][[1]]
+        s2 <- values$tops[sel[2]][[1]]
+        
+        s1.deg <- s1[abs(s1$logFC) >= values$lgfch & s1$adj.P.Val <=values$pval, ]
+        s2.deg <- s2[abs(s2$logFC) >= values$lgfch & s2$adj.P.Val <=values$pval, ]
+        
+        values$l <- s1.deg[!rownames(s1.deg) %in% rownames(s2.deg),]
+        values$c <- s1.deg[ rownames(s1.deg) %in% rownames(s2.deg),]
+        values$c2 <- s2.deg[rownames(s2.deg) %in% rownames(s1.deg),]
+        values$r <- s2.deg[!rownames(s2.deg) %in% rownames(s1.deg),]
+        
+        cc2 <- merge(values$c[,c("genes","logFC","adj.P.Val")], values$c2[,c("logFC","adj.P.Val")], by="row.names")
+        colnames(cc2) <- gsub(".x",".Left",colnames(cc2))
+        colnames(cc2) <- gsub(".y",".Right",colnames(cc2))
+        
+        x <- list(rownames(s1.deg), rownames(s2.deg))
+        names(x) <- sel
+        
+        csv_l <- paste0("VennDiagram_",join,"_Genelist_LeftCircle.csv")
+        csv_r <- paste0("VennDiagram_",join,"_Genelist_RightCircle.csv")
+        csv_c <- paste0("VennDiagram_",join,"_Genelist_CenterCircle.csv")
+        write.csv(values$l[,c("genes","logFC","adj.P.Val")], csv_l)
+        write.csv(values$r[,c("genes","logFC","adj.P.Val")], csv_r)
+        write.csv(cc2, csv_c)
+        
+        vennP <- ggVennDiagram(x)
+        vennName <- paste0("VennDiagram_",join,".png")
+        ggsave(vennName,vennP,width=6, height=4, dpi=200, units="in", device="png")
+        vennFs <- c(vennFs, vennName, csv_l, csv_r, csv_c)
       }
       
       # PCA All Samples
@@ -650,7 +692,7 @@ function(input, output, session) {
                col=color, annotation_col = df, main="Union of DEGs in each comparisons.")
       ggsave(hfile, hm, width=4, height=4, dpi=200, units="in", device="png")
       
-      zip(zipfile=file, files=c(fs, pca, hfile))
+      zip(zipfile=file, files=c(fs, pca, hfile, vennFs))
       
       setwd(wd)
     },
@@ -658,7 +700,6 @@ function(input, output, session) {
   )
   # Get current tab w/ following:
   # print(input$tabs)
-  
   
   output$comparisonBoxes <- renderUI({
     req(input$file2)
@@ -677,4 +718,16 @@ function(input, output, session) {
     checkboxGroupInput("comparisons", "Choose Comparisons to be made:", combo$pair)
   })
   
+  output$batchCrrct <- renderUI({
+    req(input$file2)
+    
+    design <- read.csv(input$file2$datapath)
+    rownames(design) <- design$samplename
+    design <- design[c(order(rownames(design), decreasing=F)),]
+    
+    cs <- c("No Batch Correction needed.", colnames(design)[-c(1:3)])
+    radioButtons("batch","Column for Batch Correction (optional):",
+                 choices=cs,
+                 selected="No Batch Correction needed.")
+  })
 }

@@ -37,6 +37,7 @@ side <- dashboardSidebar(
                            )),
                 accept=c('text/csv', 'text/comma-separated-values,text/plain')),
     uiOutput('comparisonBoxes'),
+    uiOutput('batchCrrct'),
     numericInput("pval", "Adj.P.Value:", value = 0.05, min = 0, max = 100),
     numericInput("lgfch", "Log Fold Change:", value = 1.5),
     actionButton("runAnalysis", "Run"),
