@@ -10,6 +10,7 @@ header <- dashboardHeader(
 )
 
 body <- dashboardBody(
+  tags$head(tags$style("#shiny-modal img { max-width: 100%; }")),
   uiOutput('multabs')
 )
 

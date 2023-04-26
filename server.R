@@ -172,8 +172,10 @@ function(input, output, session) {
       h4("- Do not include any gene metadata."),
       h4("- First column must be 'Geneid'"),
       h4("- Subsequent columns must be counts of each samples."),
+      h4("- For each column names (sample) in 'counts', there must be one-to-one match to 'samplename' in condition.csv."),
       p(),
       img(src='count.png'),
+      downloadButton("example", "Download Example DataSet", style='color: #444;')
     ))
   })
 
@@ -191,8 +193,12 @@ function(input, output, session) {
       title = "Example Format of Design file",
       h4("- This file consists sample metadata."),
       h4("- Column names must match the example below."),
+      h4("- If there are more than one phenotype, concatenate conditions with a dot. "),
+      h4("    ex) trt1.pheno1 or trt2.pheno2"),
+      h4("- Optionally, provide Batch information for batch correction among samples."),
       p(),
       img(src='design.png'),
+      downloadButton("example", "Download Example DataSet", style='color: #444;')
     ))
   })
   
@@ -573,7 +579,15 @@ function(input, output, session) {
       downloadButton("download", "Download Plots & Tables", style='color: #444;')
     })
   })
-  
+  output$example <- downloadHandler(
+    filename = "RNA-DifferentialAnalysis-ExampleDataSet.zip",
+    content = function(file) {
+      
+      zip(zipfile=file, files=c("ex_condition.csv","ex_counts.tsv"))
+      
+    },
+    contentType = "application/zip"
+  )
   ## This DownloadHandler has potential to disrupt the server process when wd is not correctly returned to prior.
   ## Needs an exception handling. For Gracious Failure.
   output$download <- downloadHandler(
