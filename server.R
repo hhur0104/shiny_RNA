@@ -644,42 +644,45 @@ function(input, output, session) {
         deg <- unique(c(deg,rownames(bt[abs(bt$logFC) >= values$lgfch & bt$adj.P.Val <= values$pval, ])))
       }
       
+      
       # For all vennComparison choices 
-      vennFs <- c()
-      join <- data.frame(t(combn(unique(values$choices),2)))
-      join <- paste(join$X1, ".&.", join$X2, sep="")
-      for (i in join) {
-        sel <- unlist(strsplit(i, split = ".&."))
-        
-        s1 <- values$tops[sel[1]][[1]]
-        s2 <- values$tops[sel[2]][[1]]
-        
-        s1.deg <- s1[abs(s1$logFC) >= values$lgfch & s1$adj.P.Val <=values$pval, ]
-        s2.deg <- s2[abs(s2$logFC) >= values$lgfch & s2$adj.P.Val <=values$pval, ]
-        
-        values$l <- s1.deg[!rownames(s1.deg) %in% rownames(s2.deg),]
-        values$c <- s1.deg[ rownames(s1.deg) %in% rownames(s2.deg),]
-        values$c2 <- s2.deg[rownames(s2.deg) %in% rownames(s1.deg),]
-        values$r <- s2.deg[!rownames(s2.deg) %in% rownames(s1.deg),]
-        
-        cc2 <- merge(values$c[,c("genes","logFC","adj.P.Val")], values$c2[,c("logFC","adj.P.Val")], by="row.names")
-        colnames(cc2) <- gsub(".x",".Left",colnames(cc2))
-        colnames(cc2) <- gsub(".y",".Right",colnames(cc2))
-        
-        x <- list(rownames(s1.deg), rownames(s2.deg))
-        names(x) <- sel
-        
-        csv_l <- paste0("VennDiagram_",join,"_Genelist_LeftCircle.csv")
-        csv_r <- paste0("VennDiagram_",join,"_Genelist_RightCircle.csv")
-        csv_c <- paste0("VennDiagram_",join,"_Genelist_CenterCircle.csv")
-        write.csv(values$l[,c("genes","logFC","adj.P.Val")], csv_l)
-        write.csv(values$r[,c("genes","logFC","adj.P.Val")], csv_r)
-        write.csv(cc2, csv_c)
-        
-        vennP <- ggVennDiagram(x)
-        vennName <- paste0("VennDiagram_",join,".png")
-        ggsave(vennName,vennP,width=6, height=4, dpi=200, units="in", device="png")
-        vennFs <- c(vennFs, vennName, csv_l, csv_r, csv_c)
+      if (length(values$choices) > 1 ) {
+        vennFs <- c()
+        join <- data.frame(t(combn(unique(values$choices),2)))
+        join <- paste(join$X1, ".&.", join$X2, sep="")
+        for (i in join) {
+          sel <- unlist(strsplit(i, split = ".&."))
+          
+          s1 <- values$tops[sel[1]][[1]]
+          s2 <- values$tops[sel[2]][[1]]
+          
+          s1.deg <- s1[abs(s1$logFC) >= values$lgfch & s1$adj.P.Val <=values$pval, ]
+          s2.deg <- s2[abs(s2$logFC) >= values$lgfch & s2$adj.P.Val <=values$pval, ]
+          
+          values$l <- s1.deg[!rownames(s1.deg) %in% rownames(s2.deg),]
+          values$c <- s1.deg[ rownames(s1.deg) %in% rownames(s2.deg),]
+          values$c2 <- s2.deg[rownames(s2.deg) %in% rownames(s1.deg),]
+          values$r <- s2.deg[!rownames(s2.deg) %in% rownames(s1.deg),]
+          
+          cc2 <- merge(values$c[,c("genes","logFC","adj.P.Val")], values$c2[,c("logFC","adj.P.Val")], by="row.names")
+          colnames(cc2) <- gsub(".x",".Left",colnames(cc2))
+          colnames(cc2) <- gsub(".y",".Right",colnames(cc2))
+          
+          x <- list(rownames(s1.deg), rownames(s2.deg))
+          names(x) <- sel
+          
+          csv_l <- paste0("VennDiagram_",join,"_Genelist_LeftCircle.csv")
+          csv_r <- paste0("VennDiagram_",join,"_Genelist_RightCircle.csv")
+          csv_c <- paste0("VennDiagram_",join,"_Genelist_CenterCircle.csv")
+          write.csv(values$l[,c("genes","logFC","adj.P.Val")], csv_l)
+          write.csv(values$r[,c("genes","logFC","adj.P.Val")], csv_r)
+          write.csv(cc2, csv_c)
+          
+          vennP <- ggVennDiagram(x)
+          vennName <- paste0("VennDiagram_",join,".png")
+          ggsave(vennName,vennP,width=6, height=4, dpi=200, units="in", device="png")
+          vennFs <- c(vennFs, vennName, csv_l, csv_r, csv_c)
+        }
       }
       
       # PCA All Samples
@@ -706,7 +709,14 @@ function(input, output, session) {
                col=color, annotation_col = df, main="Union of DEGs in each comparisons.")
       ggsave(hfile, hm, width=4, height=4, dpi=200, units="in", device="png")
       
-      zip(zipfile=file, files=c(fs, pca, hfile, vennFs))
+      
+      if (length(values$choices) > 1) {
+        zip(zipfile=file, files=c(fs, pca, hfile, vennFs))  
+      } else {
+        zip(zipfile=file, files=c(fs, pca, hfile))
+      }
+      
+      
       
       setwd(wd)
     },
