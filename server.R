@@ -407,6 +407,7 @@ function(input, output, session) {
     
     values$target <- target
   })
+  
   observeEvent(input$file1tip, {
     showModal(modalDialog(
       title = "Example Format of Counts.tsv",
@@ -566,7 +567,9 @@ function(input, output, session) {
           fluidRow(
             box(
               title = "CIBERSORT Settings", width="4", status="primary", solidHeader=TRUE,
-              selectInput("sigmtrx", "Choose a Reference Matrix:", choices = c("LM22","Derm22")),
+              selectInput("sigmtrx", "Choose a Reference Matrix:", choices = c("LM22","Derm22"), selected = "LM22"),
+              uiOutput('moreonSig'),
+              p(),
               actionButton("runDeconv", "Run CIBERSORT"),
             )
           ),
@@ -842,6 +845,17 @@ function(input, output, session) {
     })
   })
   
+  output$moreonSig <- renderUI({
+    c <- input$sigmtrx
+    link <- switch(c, 
+                   "LM22" = "https://www.ncbi.nlm.nih.gov/pmc/articles/PMC5895181/#S4title",
+                   "Derm22" = "https://www.ncbi.nlm.nih.gov/pmc/articles/PMC6698047/#Sec2title")
+    a(href=link,
+           paste0("More on ",c),
+           target="_blank")
+  })
+
+
   ## Run Deconvolution
   observeEvent(input$runDeconv, {
     # TPM Normalize on Input file1
@@ -858,18 +872,12 @@ function(input, output, session) {
     values$cfr_table <- result
     result <- round(result, 3)
     
+    # Render Reports
     output$cfr_table <- renderDataTable({
       datatable(
         result,
         options=list(
-          scrollX = TRUE #,
-          # rowCallback = JS(c(
-          #   "function(row, data, displayNum, index){",
-          #   "  var x2 = data[2];", # logFC
-          #   "  var x3 = data[3];", # AveExpr
-          #   "  $('td:eq(2)', row).html(x2.toFixed(3));",
-          #   "  $('td:eq(3)', row).html(x3.toExponential(3));",
-          #   "}"))
+          scrollX = TRUE 
         ))
     })
     
