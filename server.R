@@ -553,24 +553,31 @@ function(input, output, session) {
   ## Run Deconvolution
   observeEvent(input$runDeconv, {
       # Read-In geneLength
-      len <- read.table("reference/ensembl.human.length.tsv", header=TRUE, sep="\t", row.names=1)
       
-      if (!identical(rownames(len),rownames(values$target)) & !all(rownames(values$target) %in% rownames(len))) {
-          pop_Error("Gene Length not available for input counts matrix.", 
-                    "TPM normalization requires gene length information which is not available at this time
-                    for gene types of the input matrix.")
-          return()
-      }
-      
-      # TPM Normalize on Input file1
-      mixture <- tpmNorm(values$target, len, values$genemap)
-      
-      # Run CIBERSORT
       if (input$sigmtrx == "LM22") {
         sig_matrix <- read.table("reference/sig_LM22.txt",header=T,sep="\t",row.names=1,check.names=F)
+        len <- read.table("reference/sig_LM22.length.txt", header=TRUE, sep="\t", row.names=1)
+        if (sum(rownames(len) %in% rownames(values$target)) < length(rownames(len)) * 0.7) {
+          pop_Error("Not enough intersecting genes.", 
+                    "There are not enough genes in input matrix that matches with genes in signature matrix.")
+          return()
+        }
+        target <- values$target[rownames(values$target) %in% rownames(len), ]
       } else if (input$sigmtrx == "Derm22") {
         sig_matrix <- read.table("reference/sig_derm22.txt",header=T,sep="\t",row.names=1,check.names=F)
+        len <- read.table("reference/sig_derm22.length.txt", header=TRUE, sep="\t", row.names=1)
+        if (sum(rownames(len) %in% rownames(values$target)) < length(rownames(len)) * 0.7) {
+          pop_Error("Not enough intersecting genes.", 
+                    "There are not enough genes in input matrix that matches with genes in signature matrix.")
+          return()
+        }
+        target <- values$target[rownames(values$target) %in% rownames(len), ]
       }
+
+      # Run CIBERSORT
+      # TPM Normalize on Input file1
+      mixture <- tpmNorm(target, len)
+    
       result <- CIBERSORT(sig_matrix, mixture, QN=FALSE)
       values$cfr_table <- result
       result <- round(result, 3)

@@ -117,27 +117,24 @@ pop_Error <- function(title, msg) {
   ))
 }
 
-tpmNorm <- function(target, len, genemap) {
-  target <- target[rowSums(target) > 0,]
-  targetTPM <- target
-
-  len <- len[rownames(target),]
-  len$KB <- len$Length/1000
+tpmNorm <- function(target, len) {
+  targetTPM <- target[rowSums(target) > 0,]
   
+  len <- len[match(rownames(targetTPM),rownames(len), nomatch=0),]
+  len$KB <- len$Length/1000
   
   # Divide each gene by transcript length
   # (Q::Length Reference comparable? GRCh37 to CIBERSORTx Knowledge Base)
-  expPKB <- apply(targetTPM, 2, function(x){ x / len$KB } )
-  # Divide by the transcript length
-  targetTPM <- apply(expPKB, 2, function(x) { x / sum(x) * 1E6})
   
-  genemap.1 <- genemap
-  targetTPM.m <- as.data.frame(cbind("Gene"=genemap.1[match(rownames(targetTPM), genemap.1$ensembl_gene_id),"external_gene_name"],
-                                     targetTPM))
-  targetTPM.m <- targetTPM.m[!duplicated(targetTPM.m$Gene),]
-  rownames(targetTPM.m) <- targetTPM.m$Gene
-  targetTPM.m <- targetTPM.m[,-1]
-  return(targetTPM.m)
+  # Divide by the transcript length
+  targetTPM <- apply(apply(targetTPM, 2, function(x){ x / len$KB } ), 2, function(x) { x / sum(x) * 1E6})
+  
+  targetTPM <- as.data.frame(cbind("Gene"=len[match(rownames(targetTPM), rownames(len), nomatch=0),"SYMBOL"],
+                                   targetTPM))
+  targetTPM <- targetTPM[!duplicated(targetTPM$Gene),]
+  rownames(targetTPM) <- targetTPM$Gene
+  targetTPM <- targetTPM[,-1]
+  return(targetTPM)
 }
 
 CoreAlg <- function(X, y, absolute, abs_method){
