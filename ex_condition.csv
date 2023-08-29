@@ -1,9 +1,9 @@
 filename,samplename,condition
-subject1_trt2_1.R1.fastq.gz,sub1_1,trt2
-subject1_trt2_2.R1.fastq.gz,sub1_2,trt2
-subject2_trt3_2.R1.fastq.gz,sub2_2,trt3
-subject2_trt3_3.R1.fastq.gz,sub2_3,trt3
-subject3_trt1_2.R1.fastq.gz,sub3_2,trt1
-subject3_trt1_3.R1.fastq.gz,sub3_3,trt1
+subject1_trt1_1.R1.fastq.gz,sub1_1,trt1
+subject1_trt1_2.R1.fastq.gz,sub1_2,trt1
+subject2_trt2_2.R1.fastq.gz,sub2_2,trt2
+subject2_trt2_3.R1.fastq.gz,sub2_3,trt2
+subject3_trt3_2.R1.fastq.gz,sub3_2,trt3
+subject3_trt3_3.R1.fastq.gz,sub3_3,trt3
 subject4_cont_1.R1.fastq.gz,cont_1,control
 subject4_cont_2.R1.fastq.gz,cont_2,control
