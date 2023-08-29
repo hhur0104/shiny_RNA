@@ -559,6 +559,7 @@ function(input, output, session) {
           pop_Error("Gene Length not available for input counts matrix.", 
                     "TPM normalization requires gene length information which is not available at this time
                     for gene types of the input matrix.")
+          return()
       }
       
       # TPM Normalize on Input file1
