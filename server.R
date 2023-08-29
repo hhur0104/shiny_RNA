@@ -239,7 +239,7 @@ function(input, output, session) {
           fluidRow(
             box(
               title="Cell Fraction by Condition", width="12", height="auto", status="primary", solidHeader=TRUE,
-              plotlyOutput(outputId="cfr_boxplot"),
+              plotlyOutput(outputId="cfr_boxplot", height="100%"),
             )
           )
       )))
