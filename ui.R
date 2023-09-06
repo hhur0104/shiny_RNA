@@ -26,8 +26,8 @@ side <- dashboardSidebar(
     ),
     fileInput('file1', div(style="display: inline-block;",
                            fluidRow(style="vertical-align:top;",
-                             column(9, h4("Choose count data (.tsv): ")), 
-                             column(3, actionButton("file1tip", label = icon("info-circle")))
+                                    column(9, h4("Choose count data (.tsv): ")), 
+                                    column(3, actionButton("file1tip", label = icon("info-circle")))
                            )),
               accept=c('text/tsv', 'text/tab-separated-values,text/plain')),
     
@@ -36,7 +36,7 @@ side <- dashboardSidebar(
                                     column(9, h4("Choose design file (.csv): ")), 
                                     column(3, actionButton("file2tip", label = icon("info-circle")))
                            )),
-                accept=c('text/csv', 'text/comma-separated-values,text/plain')),
+              accept=c('text/csv', 'text/comma-separated-values,text/plain')),
     uiOutput('comparisonBoxes'),
     uiOutput('batchCrrct'),
     numericInput("pval", "Adj.P.Value:", value = 0.05, min = 0, max = 100),
@@ -46,7 +46,7 @@ side <- dashboardSidebar(
   )
 )
 
-dashboardPage(
+ui <- dashboardPage(
   header,
   side,
   body
